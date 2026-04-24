@@ -1,0 +1,19 @@
+{
+  "name": "terminal-os",
+  "version": "1.0.0",
+  "description": "Web-based terminal emulator with xterm.js for developers",
+  "main": "api/process.js",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "vercel-build": "echo 'Build complete'"
+  },
+  "dependencies": {
+    "@xterm/xterm": "^5.5.0",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-search": "^0.15.0",
+    "@xterm/addon-webgl": "^0.18.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terminal OS</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-terminal: #0a0e14;
+      --text-primary: #e6edf3;
+      --text-muted: #7d8590;
+      --accent-blue: #58a6ff;
+      --accent-green: #3fb950;
+      --accent-yellow: #d29922;
+      --accent-red: #f85149;
+      --border: #30363d;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 50px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .logo {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-icon {
+      color: var(--accent-green);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .tab {
+      padding: 8px 16px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 150ms ease;
+    }
+
+    .tab:hover {
+      color: var(--text-primary);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .tab.active {
+      color: var(--accent-blue);
+      background: rgba(88, 166, 255, 0.1);
+    }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg-terminal);
+    }
+
+    .view {
+      display: none;
+      flex: 1;
+      overflow: auto;
+    }
+
+    .view.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Terminal view */
+    #terminal-view {
+      padding: 8px;
+    }
+
+    #terminal-container {
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* xterm.js overrides */
+    .xterm {
+      height: 100%;
+      padding: 4px;
+    }
+
+    .xterm-viewport {
+      overflow-y: auto !important;
+    }
+
+    /* Themes view */
+    #themes-view {
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .themes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .theme-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 200ms ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .theme-card:hover {
+      border-color: var(--accent-blue);
+      transform: scale(1.02);
+    }
+
+    .theme-card.active {
+      border-color: var(--accent-blue);
+      background: rgba(88, 166, 255, 0.08);
+    }
+
+    .theme-swatch {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .theme-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .theme-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .theme-colors {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .theme-check {
+      color: var(--accent-blue);
+      font-size: 16px;
+    }
+
+    /* Settings view */
+    #settings-view {
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .settings-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .settings-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .setting-row:last-child {
+      border-bottom: none;
+    }
+
+    .setting-label {
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    .setting-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .setting-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    input[type="range"] {
+      width: 120px;
+      accent-color: var(--accent-blue);
+    }
+
+    input[type="number"] {
+      width: 80px;
+      padding: 6px 10px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+
+    .value-display {
+      font-size: 12px;
+      color: var(--text-muted);
+      min-width: 30px;
+      text-align: right;
+    }
+
+    /* Footer */
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 36px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-green);
+    }
+
+    .status-dot.error {
+      background: var(--accent-red);
+    }
+
+    .buy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff;
+      color: #7c3aed;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      transition: all 150ms ease;
+    }
+
+    .buy-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--bg-terminal);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .loading-overlay.hidden {
+      display: none;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent-green);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Pyodide banner */
+    .pyodide-banner {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: none;
+    }
+
+    .pyodide-banner.visible {
+      display: block;
+    }
+
+    /* Cursor style */
+    .terminal-wrapper {
+      flex: 1;
+      position: relative;
+      min-height: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">~</span>
+      <span>Terminal OS</span>
+    </div>
+    <nav class="tabs">
+      <button class="tab active" data-view="terminal">Terminal</button>
+      <button class="tab" data-view="themes">Themes</button>
+      <button class="tab" data-view="settings">Settings</button>
+    </nav>
+  </header>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- Terminal View -->
+    <div id="terminal-view" class="view active">
+      <div class="pyodide-banner" id="pyodideBanner">
+        Python support loading via Pyodide — this may take a few seconds on first use.
+      </div>
+      <div class="terminal-wrapper">
+        <div id="terminal-container"></div>
+      </div>
+    </div>
+
+    <!-- Themes View -->
+    <div id="themes-view" class="view">
+      <div class="themes-grid" id="themesGrid"></div>
+    </div>
+
+    <!-- Settings View -->
+    <div id="settings-view" class="view">
+      <div class="settings-section">
+        <div class="settings-title">Display</div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Font Size</div>
+            <div class="setting-desc">Terminal text size (10–24px)</div>
+          </div>
+          <div class="setting-control">
+            <input type="range" id="fontSizeSlider" min="10" max="24" value="14">
+            <span class="value-display" id="fontSizeValue">14px</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Scrollback Lines</div>
+            <div class="setting-desc">Lines kept in terminal buffer</div>
+          </div>
+          <div class="setting-control">
+            <input type="number" id="scrollbackInput" value="1000" min="100" max="10000" step="100">
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-title">Shell</div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Cursor Style</div>
+            <div class="setting-desc">Block, underline, or bar</div>
+          </div>
+          <div class="setting-control">
+            <select id="cursorStyleSelect" style="padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:13px;">
+              <option value="block">Block</option>
+              <option value="underline">Underline</option>
+              <option value="bar">Bar</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="status-left">
+      <div class="status-item">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">WebAssembly Ready</span>
+      </div>
+    </div>
+    <a href="#" class="buy-btn" id="buyBtn">
+      Get Started — $9
+    </a>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-search@0.15.0/lib/addon-search.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-webgl@0.18.0/lib/addon-webgl.js"></script>
+  <script>
+    // ============================================================
+    // Configuration
+    // ============================================================
+    const CHECKOUT_URL = window.__CHECKOUT_URL || 'https://buy.polar.sh/polar_cl_l6VyX62FmonHoMLtjuZoPhGWwNkacFtgeU3ES2OMIFU';
+
+    // ============================================================
+    // Theme definitions
+    // ============================================================
+    const THEMES = [
+      {
+        id: 'github-dark',
+        name: 'GitHub Dark',
+        bg: '#0d1117',
+        fg: '#e6edf3',
+        cursor: '#3fb950',
+        swatch: '#0d1117',
+        colors: ['#0d1117', '#f85149', '#3fb950', '#d29922', '#58a6ff', '#bc8cff', '#39c5cf', '#e6edf3', '#7d8590', '#f85149', '#3fb950', '#d29922', '#58a6ff', '#bc8cff', '#39c5cf', '#e6edf3']
+      },
+      {
+        id: 'monokai-pro',
+        name: 'Monokai Pro',
+        bg: '#2D2A2E',
+        fg: '#F8F8F2',
+        cursor: '#F8F8F2',
+        swatch: '#2D2A2E',
+        colors: ['#2D2A2E', '#FF6057', '#A6E22E', '#FFA11A', '#6EACE2', '#AE81FF', '#39C5CF', '#F8F8F2', '#7A7A7A', '#FF6057', '#A6E22E', '#FFA11A', '#6EACE2', '#AE81FF', '#39C5CF', '#F8F8F2']
+      },
+      {
+        id: 'dracula',
+        name: 'Dracula',
+        bg: '#282A36',
+        fg: '#F8F8F2',
+        cursor: '#F8F8F2',
+        swatch: '#282A36',
+        colors: ['#282A36', '#FF5555', '#50FA7B', '#F1FA8C', '#BD93F9', '#FF79C6', '#8BE9FD', '#F8F8F2', '#6272A4', '#FF5555', '#50FA7B', '#F1FA8C', '#BD93F9', '#FF79C6', '#8BE9FD', '#F8F8F2']
+      },
+      {
+        id: 'one-dark',
+        name: 'One Dark',
+        bg: '#282C34',
+        fg: '#ABB2BF',
+        cursor: '#ABB2BF',
+        swatch: '#282C34',
+        colors: ['#282C34', '#E06C75', '#98C379', '#E5C07B', '#61AFEF', '#C678DD', '#56B6C2', '#ABB2BF', '#5C6370', '#E06C75', '#98C379', '#E5C07B', '#61AFEF', '#C678DD', '#56B6C2', '#ABB2BF']
+      },
+      {
+        id: 'nord',
+        name: 'Nord',
+        bg: '#2E3440',
+        fg: '#D8DEE9',
+        cursor: '#D8DEE9',
+        swatch: '#2E3440',
+        colors: ['#2E3440', '#BF616A', '#A3BE8C', '#EBCB8B', '#81A1C1', '#B48EAD', '#88C0D0', '#D8DEE9', '#4C566A', '#BF616A', '#A3BE8C', '#EBCB8B', '#81A1C1', '#B48EAD', '#88C0D0', '#D8DEE9']
+      },
+      {
+        id: 'solarized-dark',
+        name: 'Solarized Dark',
+        bg: '#002B36',
+        fg: '#839496',
+        cursor: '#839496',
+        swatch: '#002B36',
+        colors: ['#002B36', '#DC322F', '#859900', '#B58900', '#268BD2', '#D33682', '#2AA198', '#657B83', '#073642', '#DC322F', '#859900', '#B58900', '#268BD2', '#D33682', '#2AA198', '#EEE8D5']
+      },
+      {
+        id: 'hyper',
+        name: 'Hyper',
+        bg: '#000000',
+        fg: '#ffffff',
+        cursor: '#ffffff',
+        swatch: '#000000',
+        colors: ['#000000', '#FB7185', '#73D13D', '#FACC15', '#60A5FA', '#A78BFA', '#22D3EE', '#FFFFFF', '#6B7280', '#FB7185', '#73D13D', '#FACC15', '#60A5FA', '#A78BFA', '#22D3EE', '#FFFFFF']
+      },
+      {
+        id: 'adventure',
+        name: 'Adventure',
+        bg: '#1a1a2e',
+        fg: '#00ff88',
+        cursor: '#00ff88',
+        swatch: '#1a1a2e',
+        colors: ['#1a1a2e', '#ff6b6b', '#00ff88', '#ffd93d', '#6bcfff', '#c77dff', '#00ff88', '#00cc66', '#4a4a6a', '#ff6b6b', '#00ff88', '#ffd93d', '#6bcfff', '#c77dff', '#00ff88', '#00cc66']
+      }
+    ];
+
+    let currentTheme = THEMES[0];
+    let pyodideLoaded = false;
+    let pyodideLoading = false;
+    let pyodide = null;
+
+    // ============================================================
+    // Shell emulator
+    // ============================================================
+    class ShellEmulator {
+      constructor(term) {
+        this.term = term;
+        this.currentDir = '/home/guest';
+        this.commandHistory = [];
+        this.historyIndex = -1;
+        this.currentInput = '';
+        this.virtualFiles = {
+          '/home/guest': ['documents', 'downloads', 'projects'],
+          '/home/guest/documents': ['readme.md', 'notes.txt'],
+          '/home/guest/downloads': [],
+          '/home/guest/projects': ['terminal-os']
+        };
+        this.prompt = '➜ ~';
+      }
+
+      getPrompt() {
+        const dir = this.currentDir === '/home/guest' ? '~' : '~' + this.currentDir.replace('/home/guest', '');
+        return `➜ ${dir}`;
+      }
+
+      async execute(cmd) {
+        const trimmed = cmd.trim();
+        if (!trimmed) return;
+
+        this.commandHistory.push(trimmed);
+        this.historyIndex = this.commandHistory.length;
+
+        const parts = this.parseCommand(trimmed);
+        const command = parts[0];
+        const args = parts.slice(1);
+
+        this.term.writeln('');
+
+        switch (command) {
+          case 'help':
+            this.showHelp();
+            break;
+          case 'clear':
+            this.term.clear();
+            break;
+          case 'date':
+            this.term.writeln(new Date().toString());
+            break;
+          case 'whoami':
+            this.term.writeln('guest');
+            break;
+          case 'echo':
+            this.term.writeln(args.join(' '));
+            break;
+          case 'pwd':
+            this.term.writeln(this.currentDir);
+            break;
+          case 'ls':
+            this.ls(args);
+            break;
+          case 'cd':
+            this.cd(args[0] || '~');
+            break;
+          case 'cat':
+            await this.cat(args[0]);
+            break;
+          case 'mkdir':
+            this.mkdir(args[0]);
+            break;
+          case 'rmdir':
+            this.rmdir(args[0]);
+            break;
+          case 'python':
+          case 'python3':
+            await this.pythonRepl();
+            break;
+          case 'curl':
+            await this.curl(args[0]);
+            break;
+          case 'history':
+            this.showHistory();
+            break;
+          case 'uname':
+            this.term.writeln('TerminalOS 1.0.0 xterm.js');
+            break;
+          case 'uptime':
+            this.term.writeln(`Up ${this.getUptime()}`);
+            break;
+          case 'echo':
+            this.term.writeln(args.join(' '));
+            break;
+          default:
+            this.term.writeln(`bash: command not found: ${command}`);
+        }
+      }
+
+      parseCommand(cmd) {
+        const parts = [];
+        let current = '';
+        let inQuote = false;
+        let quoteChar = '';
+
+        for (const char of cmd) {
+          if ((char === '"' || char === "'") && !inQuote) {
+            inQuote = true;
+            quoteChar = char;
+          } else if (char === quoteChar && inQuote) {
+            inQuote = false;
+            quoteChar = '';
+          } else if (char === ' ' && !inQuote) {
+            if (current) {
+              parts.push(current);
+              current = '';
+            }
+          } else {
+            current += char;
+          }
+        }
+        if (current) parts.push(current);
+        return parts;
+      }
+
+      showHelp() {
+        const lines = [
+          'Available commands:',
+          '  help     - Show this help message',
+          '  clear    - Clear the terminal',
+          '  date     - Show current date and time',
+          '  whoami   - Show current user',
+          '  echo     - Print text to terminal',
+          '  pwd      - Print working directory',
+          '  ls       - List directory contents',
+          '  cd       - Change directory',
+          '  cat      - Show file contents',
+          '  mkdir    - Create a directory',
+          '  rmdir    - Remove a directory',
+          '  python   - Start Python REPL (via Pyodide)',
+          '  python3  - Start Python REPL (via Pyodide)',
+          '  curl     - Fetch URL content',
+          '  history  - Show command history',
+          '  uname    - Show system information',
+          '  uptime   - Show system uptime',
+          '',
+          'Keyboard shortcuts:',
+          '  Ctrl+C   - Interrupt',
+          '  Ctrl+L   - Clear screen',
+          '  Ctrl+D   - Exit/EOF',
+          '  ↑/↓      - Command history',
+          '',
+          'Premium features:',
+          '  Save sessions, custom themes, aliases',
+          '  → Get Started — $9'
+        ];
+        lines.forEach(line => this.term.writeln(line));
+      }
+
+      ls(args) {
+        const target = args[0] ? this.resolvePath(args[0]) : this.currentDir;
+        const files = this.virtualFiles[target];
+
+        if (files === undefined) {
+          this.term.writeln(`ls: cannot access '${args[0]}': No such file or directory`);
+          return;
+        }
+
+        if (files.length === 0) {
+          return;
+        }
+
+        this.term.writeln(files.join('  '));
+      }
+
+      cd(dir) {
+        let target;
+        if (dir === '~' || dir === '') {
+          target = '/home/guest';
+        } else if (dir === '..') {
+          const parent = this.currentDir.split('/').slice(0, -1).join('/') || '/home/guest';
+          target = parent === '' ? '/home/guest' : parent;
+        } else if (dir.startsWith('/')) {
+          target = dir;
+        } else {
+          target = this.currentDir === '/home/guest'
+            ? `/home/guest/${dir}`
+            : `${this.currentDir}/${dir}`;
+        }
+
+        if (this.virtualFiles[target] !== undefined) {
+          this.currentDir = target;
+        } else {
+          this.term.writeln(`cd: no such file or directory: ${dir}`);
+        }
+      }
+
+      resolvePath(p) {
+        if (p.startsWith('/')) return p;
+        if (p === '~') return '/home/guest';
+        return `${this.currentDir}/${p}`.replace(/\/+/g, '/');
+      }
+
+      async cat(file) {
+        if (!file) {
+          this.term.writeln('cat: missing file operand');
+          return;
+        }
+
+        const content = {
+          '/home/guest/documents/readme.md': '# Welcome to Terminal OS\n\nA browser-based terminal emulator powered by xterm.js.\n\n## Features\n- Full xterm.js terminal\n- Built-in shell commands\n- Python via Pyodide\n- 8 beautiful themes',
+          '/home/guest/documents/notes.txt': 'Meeting notes:\n- Review terminal OS implementation\n- Test all built-in commands\n- Check theme switching'
+        };
+
+        const path = this.resolvePath(file);
+        if (content[path]) {
+          this.term.writeln(content[path]);
+        } else if (this.virtualFiles[path] !== undefined) {
+          this.term.writeln(`cat: ${file}: Is a directory`);
+        } else {
+          this.term.writeln(`cat: ${file}: No such file`);
+        }
+      }
+
+      mkdir(dir) {
+        if (!dir) {
+          this.term.writeln('mkdir: missing directory name');
+          return;
+        }
+        const path = this.resolvePath(dir);
+        if (this.virtualFiles[path] !== undefined) {
+          this.term.writeln(`mkdir: cannot create directory '${dir}': File exists`);
+        } else {
+          this.virtualFiles[path] = [];
+          this.term.writeln(`Created: ${dir}`);
+        }
+      }
+
+      rmdir(dir) {
+        if (!dir) {
+          this.term.writeln('rmdir: missing directory name');
+          return;
+        }
+        const path = this.resolvePath(dir);
+        if (this.virtualFiles[path] === undefined) {
+          this.term.writeln(`rmdir: failed to remove '${dir}': No such file or directory`);
+        } else if (this.virtualFiles[path].length > 0) {
+          this.term.writeln(`rmdir: failed to remove '${dir}': Directory not empty`);
+        } else {
+          delete this.virtualFiles[path];
+        }
+      }
+
+      async pythonRepl() {
+        this.term.writeln('');
+        this.term.writeln('Loading Python 3.11 via Pyodide...');
+        this.term.writeln('');
+
+        try {
+          await this.ensurePyodide();
+          this.term.writeln('Python 3.11.0 (Pyodide) on Terminal OS');
+          this.term.writeln('Type "exit()" to return to shell');
+          this.term.writeln('');
+
+          // Simple Python REPL
+          this.pyodideReplActive = true;
+          this.term.writeln('>>> ', { noNewLine: true });
+
+          // Handle in onData
+        } catch (e) {
+          this.term.writeln(`\x1b[31mError loading Python: ${e.message}\x1b[0m`);
+          this.term.writeln('Refresh the page to try again.');
+        }
+      }
+
+      async ensurePyodide() {
+        if (pyodideLoaded) return;
+        if (pyodideLoading) {
+          // Wait for it
+          while (pyodideLoading) {
+            await new Promise(r => setTimeout(r, 100));
+          }
+          return;
+        }
+
+        pyodideLoading = true;
+        const banner = document.getElementById('pyodideBanner');
+        if (banner) banner.classList.add('visible');
+
+        try {
+          // Load Pyodide script if not already loaded
+          if (!window.loadPyodide) {
+            await new Promise((resolve, reject) => {
+              const script = document.createElement('script');
+              script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+              script.onload = resolve;
+              script.onerror = reject;
+              document.head.appendChild(script);
+            });
+          }
+
+          pyodide = await window.loadPyodide({
+            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'
+          });
+
+          pyodideLoaded = true;
+          if (banner) banner.classList.remove('visible');
+        } catch (e) {
+          pyodideLoading = false;
+          if (banner) banner.classList.remove('visible');
+          throw e;
+        } finally {
+          pyodideLoading = false;
+        }
+      }
+
+      async runPython(code) {
+        await this.ensurePyodide();
+        try {
+          const result = await pyodide.runPythonAsync(code);
+          if (result !== undefined && result !== null) {
+            if (String(result).trim()) {
+              this.term.writeln(String(result));
+            }
+          }
+        } catch (e) {
+          this.term.writeln(`\x1b[31m${e.message}\x1b[0m`);
+        }
+      }
+
+      async curl(url) {
+        if (!url) {
+          this.term.writeln('curl: no URL provided');
+          return;
+        }
+
+        // Basic URL validation
+        let targetUrl;
+        try {
+          targetUrl = new URL(url);
+        } catch {
+          this.term.writeln(`curl: invalid URL: ${url}`);
+          return;
+        }
+
+        this.term.writeln(`Fetching ${url}...`);
+
+        try {
+          const response = await fetch(url, {
+            method: 'GET',
+            mode: 'cors'
+          });
+
+          if (!response.ok) {
+            this.term.writeln(`curl: HTTP ${response.status} — ${response.statusText}`);
+            return;
+          }
+
+          const text = await response.text();
+          const preview = text.slice(0, 2000);
+          this.term.writeln(preview);
+          if (text.length > 2000) {
+            this.term.writeln(`\n... (truncated, ${text.length} bytes total)`);
+          }
+        } catch (e) {
+          this.term.writeln(`curl: error fetching ${url}: ${e.message}`);
+          this.term.writeln('Note: CORS restrictions may apply. Try a CORS-enabled API.');
+        }
+      }
+
+      showHistory() {
+        this.commandHistory.forEach((cmd, i) => {
+          this.term.writeln(`  ${i + 1}  ${cmd}`);
+        });
+      }
+
+      getUptime() {
+        const days = Math.floor(performance.now() / 86400000);
+        const hours = Math.floor((performance.now() % 86400000) / 3600000);
+        const mins = Math.floor((performance.now() % 3600000) / 60000);
+        if (days > 0) return `${days}d ${hours}h ${mins}m`;
+        if (hours > 0) return `${hours}h ${mins}m`;
+        return `${mins}m`;
+      }
+
+      handleHistoryNav(direction) {
+        if (this.commandHistory.length === 0) return;
+
+        if (direction === 'up') {
+          if (this.historyIndex > 0) {
+            this.historyIndex--;
+          }
+        } else {
+          if (this.historyIndex < this.commandHistory.length) {
+            this.historyIndex++;
+          }
+        }
+
+        if (this.historyIndex >= this.commandHistory.length) {
+          return '';
+        }
+        return this.commandHistory[this.historyIndex];
+      }
+    }
+
+    // ============================================================
+    // Terminal initialization
+    // ============================================================
+    let term;
+    let fitAddon;
+    let searchAddon;
+    let shell;
+    let currentInput = '';
+    let promptDisplayed = '';
+    let pyodideReplActive = false;
+    let pythonInputBuffer = '';
+
+    function initTerminal() {
+      term = new Terminal({
+        fontFamily: "'JetBrains Mono', Consolas, Monaco, monospace",
+        fontSize: 14,
+        theme: currentTheme.colors.reduce((acc, color, i) => {
+          const keys = [
+            'background', 'foreground', 'cursor', 'cursorAccent',
+            'selectionBackground',
+            'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white',
+            'brightBlack', 'brightRed', 'brightGreen', 'brightYellow', 'brightBlue', 'brightMagenta', 'brightCyan', 'brightWhite'
+          ];
+          if (keys[i]) acc[keys[i]] = color;
+          return acc;
+        }, {}),
+        cursorBlink: true,
+        cursorStyle: 'block',
+        scrollback: 1000,
+        allowTransparency: true
+      });
+
+      fitAddon = new FitAddon.FitAddon();
+      searchAddon = new SearchAddon.SearchAddon();
+
+      term.loadAddon(fitAddon);
+      term.loadAddon(searchAddon);
+
+      // Try WebGL addon
+      try {
+        const webglAddon = new WebglAddon.WebglAddon();
+        webglAddon.onContextLoss(() => {
+          webglAddon.dispose();
+        });
+        term.loadAddon(webglAddon);
+        updateStatus('GPU Accelerated', false);
+      } catch (e) {
+        updateStatus('WebAssembly Ready', false);
+      }
+
+      term.open(document.getElementById('terminal-container'));
+      fitAddon.fit();
+
+      shell = new ShellEmulator(term);
+
+      // Welcome message
+      term.writeln('\x1b[32mTerminal OS\x1b[0m — Browser-based terminal emulator');
+      term.writeln('Type \x1b[36mhelp\x1b[0m for available commands');
+      term.writeln('');
+
+      promptDisplayed = shell.getPrompt();
+      term.write(`\r\n${promptDisplayed} `);
+
+      // Handle input
+      term.onData(data => {
+        handleInput(data);
+      });
+
+      // Resize handler
+      window.addEventListener('resize', () => {
+        fitAddon.fit();
+      });
+
+      // URL click handler
+      term.onSelectionChange(() => {
+        const selection = term.getSelection();
+        if (selection && selection.startsWith('http')) {
+          window.open(selection, '_blank');
+        }
+      });
+    }
+
+    function handleInput(data) {
+      const code = data.charCodeAt(0);
+
+      // Ctrl+C
+      if (data === '\x03') {
+        if (pyodideReplActive) {
+          pyodideReplActive = false;
+          pythonInputBuffer = '';
+          term.writeln('^C');
+          term.write(`\r\n${shell.getPrompt()} `);
+        } else {
+          term.write('^C');
+          term.writeln('');
+          term.write(`${shell.getPrompt()} `);
+        }
+        currentInput = '';
+        return;
+      }
+
+      // Ctrl+L - clear
+      if (data === '\x0c') {
+        term.clear();
+        term.write(`\r\n${shell.getPrompt()} `);
+        currentInput = '';
+        return;
+      }
+
+      // Ctrl+D - exit/EOF
+      if (data === '\x04') {
+        if (pyodideReplActive) {
+          pyodideReplActive = false;
+          pythonInputBuffer = '';
+          term.writeln('exit');
+          term.write(`\r\n${shell.getPrompt()} `);
+        } else {
+          term.write('^D');
+        }
+        return;
+      }
+
+      // Enter
+      if (data === '\r') {
+        const cmd = currentInput;
+        currentInput = '';
+
+        if (pyodideReplActive) {
+          if (cmd.trim() === 'exit()' || cmd.trim() === 'exit') {
+            pyodideReplActive = false;
+            pythonInputBuffer = '';
+            term.writeln('');
+            term.write(`\r\n${shell.getPrompt()} `);
+          } else {
+            pythonInputBuffer += cmd + '\n';
+            term.writeln('');
+            // Try to execute complete statements
+            shell.runPython(pythonInputBuffer).then(() => {
+              if (pyodideReplActive) {
+                term.write('>>> ');
+              }
+            });
+          }
+        } else {
+          term.writeln('');
+          shell.execute(cmd).then(() => {
+            if (!pyodideReplActive) {
+              promptDisplayed = shell.getPrompt();
+              term.write(`\r\n${promptDisplayed} `);
+            }
+          });
+        }
+        return;
+      }
+
+      // Backspace
+      if (data === '\x7f') {
+        if (currentInput.length > 0) {
+          currentInput = currentInput.slice(0, -1);
+          term.write('\b \b');
+        }
+        return;
+      }
+
+      // Arrow up - history
+      if (data === '\x1b[A') {
+        const hist = shell.handleHistoryNav('up');
+        if (hist !== undefined) {
+          // Clear current input
+          while (currentInput.length > 0) {
+            term.write('\b \b');
+            currentInput = currentInput.slice(0, -1);
+          }
+          currentInput = hist;
+          term.write(hist);
+        }
+        return;
+      }
+
+      // Arrow down
+      if (data === '\x1b[B') {
+        const hist = shell.handleHistoryNav('down');
+        if (hist !== undefined) {
+          while (currentInput.length > 0) {
+            term.write('\b \b');
+            currentInput = currentInput.slice(0, -1);
+          }
+          if (hist) {
+            currentInput = hist;
+            term.write(hist);
+          }
+        }
+        return;
+      }
+
+      // Printable characters
+      if (data >= ' ' || data === '\t') {
+        currentInput += data;
+        term.write(data);
+      }
+    }
+
+    // ============================================================
+    // Theme management
+    // ============================================================
+    function renderThemes() {
+      const grid = document.getElementById('themesGrid');
+      if (!grid) return;
+
+      grid.innerHTML = THEMES.map(theme => `
+        <div class="theme-card ${theme.id === currentTheme.id ? 'active' : ''}" data-theme="${theme.id}">
+          <div class="theme-swatch" style="background:${theme.swatch}; border-color:${theme.colors[7]};"></div>
+          <div class="theme-info">
+            <div class="theme-name">${theme.name}</div>
+            <div class="theme-colors">${theme.bg} / ${theme.fg}</div>
+          </div>
+          <div class="theme-check">${theme.id === currentTheme.id ? '✓' : ''}</div>
+        </div>
+      `).join('');
+
+      grid.querySelectorAll('.theme-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const themeId = card.dataset.theme;
+          const theme = THEMES.find(t => t.id === themeId);
+          if (theme) applyTheme(theme);
+        });
+      });
+    }
+
+    function applyTheme(theme) {
+      currentTheme = theme;
+
+      const termTheme = theme.colors.reduce((acc, color, i) => {
+        const keys = [
+          'background', 'foreground', 'cursor', 'cursorAccent',
+          'selectionBackground',
+          'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white',
+          'brightBlack', 'brightRed', 'brightGreen', 'brightYellow', 'brightBlue', 'brightMagenta', 'brightCyan', 'brightWhite'
+        ];
+        if (keys[i]) acc[keys[i]] = color;
+        return acc;
+      }, {});
+
+      if (term) {
+        term.options.theme = termTheme;
+      }
+
+      // Update CSS variables for UI
+      document.documentElement.style.setProperty('--bg-terminal', theme.bg);
+      document.documentElement.style.setProperty('--text-primary', theme.fg);
+
+      // Update checkmarks
+      document.querySelectorAll('.theme-card').forEach(card => {
+        const isActive = card.dataset.theme === theme.id;
+        card.classList.toggle('active', isActive);
+        card.querySelector('.theme-check').textContent = isActive ? '✓' : '';
+      });
+
+      localStorage.setItem('terminal-os-theme', theme.id);
+    }
+
+    // ============================================================
+    // Settings
+    // ============================================================
+    function initSettings() {
+      const fontSlider = document.getElementById('fontSizeSlider');
+      const fontValue = document.getElementById('fontSizeValue');
+      const scrollbackInput = document.getElementById('scrollbackInput');
+      const cursorSelect = document.getElementById('cursorStyleSelect');
+
+      // Load saved settings
+      const savedFontSize = localStorage.getItem('terminal-os-fontSize');
+      const savedScrollback = localStorage.getItem('terminal-os-scrollback');
+      const savedCursor = localStorage.getItem('terminal-os-cursor');
+
+      if (savedFontSize && term) {
+        const size = parseInt(savedFontSize);
+        term.options.fontSize = size;
+        fontSlider.value = size;
+        fontValue.textContent = size + 'px';
+      }
+
+      if (savedScrollback && term) {
+        const lines = parseInt(savedScrollback);
+        term.options.scrollback = lines;
+        scrollbackInput.value = lines;
+      }
+
+      if (savedCursor && term) {
+        term.options.cursorStyle = savedCursor;
+        cursorSelect.value = savedCursor;
+      }
+
+      fontSlider.addEventListener('input', () => {
+        const size = parseInt(fontSlider.value);
+        fontValue.textContent = size + 'px';
+        if (term) term.options.fontSize = size;
+        localStorage.setItem('terminal-os-fontSize', size);
+        if (fitAddon) fitAddon.fit();
+      });
+
+      scrollbackInput.addEventListener('change', () => {
+        const lines = parseInt(scrollbackInput.value);
+        if (term) term.options.scrollback = lines;
+        localStorage.setItem('terminal-os-scrollback', lines);
+      });
+
+      cursorSelect.addEventListener('change', () => {
+        const style = cursorSelect.value;
+        if (term) term.options.cursorStyle = style;
+        localStorage.setItem('terminal-os-cursor', style);
+      });
+    }
+
+    // ============================================================
+    // Tab switching
+    // ============================================================
+    function initTabs() {
+      const tabs = document.querySelectorAll('.tab');
+      const views = document.querySelectorAll('.view');
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const viewId = tab.dataset.view;
+
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+
+          views.forEach(v => {
+            v.classList.toggle('active', v.id === viewId + '-view');
+          });
+
+          if (viewId === 'themes') {
+            renderThemes();
+          }
+
+          if (viewId === 'terminal' && fitAddon) {
+            setTimeout(() => fitAddon.fit(), 10);
+          }
+        });
+      });
+    }
+
+    // ============================================================
+    // Status
+    // ============================================================
+    function updateStatus(text, isError = false) {
+      const dot = document.getElementById('statusDot');
+      const textEl = document.getElementById('statusText');
+      if (dot) dot.classList.toggle('error', isError);
+      if (textEl) textEl.textContent = text;
+    }
+
+    // ============================================================
+    // Buy button
+    // ============================================================
+    document.getElementById('buyBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      window.open(CHECKOUT_URL, '_blank');
+    });
+
+    // ============================================================
+    // Init
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      initTerminal();
+      initTabs();
+      initSettings();
+
+      // Load saved theme
+      const savedThemeId = localStorage.getItem('terminal-os-theme');
+      if (savedThemeId) {
+        const savedTheme = THEMES.find(t => t.id === savedThemeId);
+        if (savedTheme) applyTheme(savedTheme);
+      }
+    });
+  </script>
+</body>
+</html>
