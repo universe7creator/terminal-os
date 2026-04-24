@@ -1,18 +1,47 @@
-# Terminal OS — Product Specification v1.0
+# Terminal OS — AI Agent Shell OS
+## Product Specification v2.0
 
 ## 1. Concept & Vision
 
-**What it does:** A browser-based terminal emulator powered by xterm.js — no SSH, no backend, just a beautiful functional terminal that runs entirely in the browser using WebAssembly-powered command execution.
+**What it does:** A browser-based AI Agent Shell OS powered by xterm.js — a full-featured terminal emulator that doubles as a multi-agent AI orchestration platform. Users spawn AI agents as named processes, chat with them in the terminal, and orchestrate multiple specialized agents simultaneously.
 
-**Target user:** Developers who want instant browser-accessible terminal for quick tasks, demos, or systems that don't need SSH persistence.
+**Target user:** Developers who want instant browser-accessible AI agent shell for rapid prototyping, debugging, pair programming, and multi-agent task orchestration.
 
-**Differentiation from webterminal-pro:** webterminal-pro has SSH + remote session. Terminal OS is self-contained, client-side, no-server — everything runs in the browser via WebAssembly (Pyodide for Python, JSFiddle-style command execution).
+**Differentiation from webterminal-pro:** webterminal-pro has SSH + remote session. Terminal OS is self-contained, client-side terminal + AI agent backend — no SSH, just a powerful shell that connects to AI models.
 
-**Core loop:** User opens page → sees a full-featured terminal → types commands → gets instant output → buys premium for saved sessions/history.
+**Core loop:** User opens page → sees AI-powered terminal → spawns agents → chats → gets work done → upgrades to premium for multi-agent mode.
 
-## 2. Design Language
+---
 
-### Color Palette (CSS Variables)
+## 2. AI Agent Shell Commands
+
+```
+/agent spawn <name> "<system_prompt>"   Spawn a new AI agent (PID assigned)
+/agent list                             List all active agents
+/agent send <name> <message>            Send message to agent, get AI reply
+/agent switch <name>                    Switch active (focused) agent
+/agent kill <name>                      Terminate an agent
+/agent info <name>                      Show agent details + history count
+```
+
+### Agent Lifecycle
+1. `spawn` → creates in-memory agent with system prompt, gets unique PID
+2. `send` → sends user message, AI model responds (Groq free tier)
+3. `switch` → changes active agent context
+4. `kill` → terminates agent, frees memory
+
+### Backend API (`/api/process`)
+- `POST /api/process` — main endpoint
+- Routes `/agent spawn|list|send|switch|kill|info`
+- Agent sessions: in-memory Map (UUID-keyed)
+- AI responses: Groq API (llama-3.1-8b-instant) with fallback simulation
+- Sandbox: only safe commands via `/exec`
+
+---
+
+## 3. Design Language
+
+### Color Palette
 ```css
 --bg-primary: #0d1117;        /* GitHub dark */
 --bg-secondary: #161b22;
@@ -23,201 +52,99 @@
 --accent-green: #3fb950;
 --accent-yellow: #d29922;
 --accent-red: #f85149;
+--accent-magenta: #bc8cff;   /* Agent messages */
 --border: #30363d;
 ```
 
 ### Typography
-- **Terminal font:** JetBrains Mono (Google Fonts) — fallback: `Consolas, Monaco, monospace`
-- **UI font:** Inter — fallback: `-apple-system, BlinkMacSystemFont, sans-serif`
-- **Font sizes:** Terminal: 14px, UI: 13-15px
+- **Terminal font:** JetBrains Mono (Google Fonts)
+- **UI font:** Inter
 
 ### Motion
-- Terminal cursor: blinking block (50% duty cycle, 530ms period)
-- Command output: instant, no animation delay
-- Tab switches: 150ms fade
-- Theme toggle: 200ms CSS transition
+- Agent spawn: instant with PID display
+- Agent messages: prefix with colored arrows (`→` cyan, `←` green)
+- Loading: `⟳` spinner while AI responds
+- Error: red text
 
-## 3. Layout & Structure
+---
+
+## 4. Layout & Structure
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  HEADER: Logo | Tabs: Terminal | Themes | Settings  │
+│  HEADER: Terminal OS | Tabs: Terminal | Themes | Settings │
 ├─────────────────────────────────────────────────────┤
 │                                                     │
 │  TERMINAL VIEW (xterm.js canvas)                    │
-│  - Full viewport height                             │
-│  - Green prompt: `➜ ~`                              │
-│  - Command input with history (↑↓)                  │
+│  Welcome banner with AI Agent Shell OS branding      │
+│  $ /agent spawn coder "expert JS dev"              │
+│  → Agent `coder` spawned (PID a1b2c3d4)           │
+│  $ /agent send coder debug my API route            │
+│  → coder: "debug my API route"                     │
+│  ⟳ Waiting for coder...                            │
+│  ← coder: Here's what I'd check...                 │
 │                                                     │
 ├─────────────────────────────────────────────────────┤
-│  FOOTER: Status | Connection | Buy Button ($9)      │
+│  STATUS: ● WebAssembly Ready  |  Agents: 1  |  $9  │
 └─────────────────────────────────────────────────────┘
 ```
 
-**Tab structure:**
-1. **Terminal** — main xterm.js terminal
-2. **Themes** — preset color scheme switcher
-3. **Settings** — font size, cursor style, scrollback
+---
 
-## 4. Features & Interactions
+## 5. Tech Stack
 
-### Core Features
+- **Frontend:** xterm.js 5.5.0 (CDN), vanilla JS, no build step
+- **Backend:** Vercel Serverless API (Node.js)
+- **AI:** Groq API (llama-3.1-8b-instant) — free tier
+- **Fallback simulation:** Built-in agent response generator
+- **Session:** In-memory (ephemeral, per-deployment)
 
-#### F1: xterm.js Terminal
-- Full xterm.js with addon support (fit, search, webgl)
-- GPU-accelerated rendering via WebGL addon
-- 256-color and truecolor support
-- Mouse event support (clickable URLs, selection)
-- Custom themes via xterm.js API
+---
 
-#### F2: Built-in Command Execution
-Execute these commands client-side in WebAssembly:
-- `python`, `python3` — via Pyodide (Python 3.11 WASM)
-- `node` — via quickjs or builtin JS runner
-- `bc` — arbitrary precision calculator language
-- `jq` — JSON processor (via wasm)
-- `dc` — RPN calculator
-- `factor`, `seq`, `yes` — GNU coreutils (via WASM port)
+## 6. Premium Features
 
-**Shell commands supported:**
-- `ls`, `cd`, `pwd`, `mkdir`, `rmdir`, `cat`, `head`, `tail`
-- `grep`, `awk`, `sed` (via WASM)
-- `curl` — browser fetch API
-- `date`, `cal`, `whoami`
-- `clear`, `history`, `help`
+| Feature | Free | Premium ($9) |
+|---------|------|-------------|
+| Basic shell commands | ✓ | ✓ |
+| Python REPL (Pyodide) | ✓ | ✓ |
+| Single AI agent | ✓ | ✓ |
+| Multiple AI agents | — | ✓ |
+| Agent history | — | ✓ |
+| Saved sessions | — | ✓ |
+| Custom themes | — | ✓ |
 
-**NOT supported (no server):**
-- SSH, telnet, any network socket
-- Running processes beyond WASM lifetime
-- Persistent filesystem
+---
 
-#### F3: Theme Library
-Preset themes (selectable):
-1. **GitHub Dark** (default) — `#0d1117` bg
-2. **Monokai Pro** — `#2D2A2E` bg, `#F8F8F2` text
-3. **Dracula** — `#282A36` bg, `#F8F8F2` text
-4. **One Dark** — `#282C34` bg, `#ABB2BF` text
-5. **Nord** — `#2E3440` bg, `#D8DEE9` text
-6. **Solarized Dark** — `#002B36` bg, `#839496` text
-7. **Hyper** — `#000000` bg, `#ffffff` text
-8. **Adventure** — `#1a1a2e` bg, neon green text
+## 7. Backend API Reference
 
-User can also define custom colors via CSS variables.
-
-#### F4: Session Management (Premium)
-- Save/restore terminal sessions
-- Named session tabs
-- Session history persistence
-- Export session as transcript
-
-#### F5: Premium Features (checkout gated)
-- Session saving (5 sessions free, unlimited premium)
-- Custom theme upload
-- Command alias management
-- Output export (PDF, HTML)
-- API access for automation
-
-### User Interactions
-| Action | Result |
-|---|---|
-| Type `python` | Pyodide boots, shows `>>>` REPL |
-| Press ↑ | Previous command from history |
-| Click URL in terminal | Opens in new tab |
-| Select text | OS-native selection |
-| Ctrl+C | Interrupt current command |
-| Ctrl+L | Clear screen |
-| Ctrl+D | EOF / exit shell |
-| Theme button click | Instant theme switch, 200ms transition |
-
-### Edge Cases
-- **Pyodide load failure:** Show error in terminal, suggest refresh
-- **WASM not supported:** Show "Your browser doesn't support WASM" message
-- **Command not found:** `bash: command not found: foo` (realistic bash-style error)
-- **Long output:** xterm.js scrollback (default 1000 lines, configurable)
-
-## 5. Component Inventory
-
-### Terminal Component
-```
-States: loading (Pyodide init) | ready | executing | error
-- Loading: show "Initializing WebAssembly..." with progress
-- Ready: green prompt visible, accepting input
-- Executing: prompt shows spinner, input disabled
-- Error: red text, error message, prompt returns
-```
-
-### Buy Button
-```
-States: default | hover | loading | purchased
-- Default: white bg, purple text, `Get Started — $9`
-- Hover: slight lift (translateY -2px), shadow increase
-- Loading: spinner icon, "Processing..."
-- Purchased: green bg, checkmark, "Active ✓"
-```
-
-### Theme Card
-```
-States: default | hover | active
-- Default: color swatch + name, subtle border
-- Hover: border brightens, slight scale(1.02)
-- Active: blue border, checkmark overlay
-```
-
-### Tab Navigation
-```
-States: default | hover | active
-- Default: muted text
-- Hover: brightened text
-- Active: accent color, bottom border indicator
-```
-
-## 6. Technical Approach
-
-### Stack
-- **Frontend:** Vanilla HTML/CSS/JS — no framework (keeps it fast)
-- **Terminal:** xterm.js v5 (`@xterm/xterm`) via CDN/npm
-- **Python execution:** Pyodide (Python 3.11 WASM)
-- **Shell/JS runner:** Custom minimal shell implementation
-- **Build:** Vercel (static files), no server required for basic operation
-- **Payment:** Polar (already configured in product.json)
-
-### Key Libraries
+### `POST /api/process`
 ```json
 {
-  "@xterm/xterm": "^5.5.0",
-  "@xterm/addon-fit": "^0.10.0",
-  "@xterm/addon-search": "^0.15.0",
-  "@xterm/addon-webgl": "^0.18.0"
+  "command": "/agent spawn coder \"expert JS developer\"",
+  "licenseKey": ""
 }
 ```
 
-### Architecture
-```
-index.html
-├── xterm.js terminal instance
-├── Pyodide (loaded on demand)
-├── Shell emulator (client-side commands)
-└── Theme manager
+#### Responses:
+```json
+// /agent spawn
+{ "ok": true, "agent": { "name": "coder", "id": "a1b2c3d4", "created": "..." }, "message": "..." }
+
+// /agent list
+{ "ok": true, "agents": [...], "count": 2 }
+
+// /agent send
+{ "ok": true, "agent": "coder", "id": "a1b2c3d4", "reply": "Here's what I'd check..." }
+
+// /agent kill
+{ "ok": true, "message": "Agent `coder` terminated." }
+
+// /agent info
+{ "ok": true, "agent": {...}, "history": 5 }
 ```
 
-### File Structure
+### Health check
+```json
+GET /api/process
+{ "status": "terminal-os-api-v2", "uptime": 123, "agents": 2, "execHistory": 5 }
 ```
-products/terminal-os/
-├── public/
-│   └── index.html          # Single page app
-├── api/
-│   └── webhook.js        # Polar webhook handler (premium activation)
-├── package.json          # (empty deps for now)
-├── vercel.json           # Standard static + serverless
-└── product.json
-```
-
-### Pricing
-- **Free:** Basic terminal, Python REPL, 3 themes, 100 line scrollback
-- **Premium ($9):** Unlimited sessions, all themes, custom aliases, export, API
-
-## 7. Success Metrics
-- Terminal loads in < 3 seconds
-- Python REPL usable in < 5 seconds (Pyodide lazy-load)
-- All builtin commands execute in < 100ms
-- Zero external HTTP calls for core terminal function

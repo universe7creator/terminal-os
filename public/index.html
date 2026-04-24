@@ -577,11 +577,14 @@
         this.commandHistory = [];
         this.historyIndex = -1;
         this.currentInput = '';
+        this.agents = {};          // active agents: name -> {id, prompt}
+        this.activeAgent = null;   // currently focused agent
         this.virtualFiles = {
-          '/home/guest': ['documents', 'downloads', 'projects'],
+          '/home/guest': ['documents', 'downloads', 'projects', '.agents'],
           '/home/guest/documents': ['readme.md', 'notes.txt'],
           '/home/guest/downloads': [],
-          '/home/guest/projects': ['terminal-os']
+          '/home/guest/projects': ['terminal-os'],
+          '/home/guest/.agents': []
         };
         this.prompt = '➜ ~';
       }
@@ -657,6 +660,13 @@
           case 'echo':
             this.term.writeln(args.join(' '));
             break;
+          case '/agent':
+            await this.agentCommand(args);
+            break;
+          case 'agent':
+            // Alias for /agent
+            await this.agentCommand(args);
+            break;
           default:
             this.term.writeln(`bash: command not found: ${command}`);
         }
@@ -709,6 +719,13 @@
           '  uname    - Show system information',
           '  uptime   - Show system uptime',
           '',
+          '  \x1b[36m/agent\x1b[0m  AI Agent Shell — spawn, chat with, manage agents',
+          '  /agent spawn <name> "<prompt>"   Spawn AI agent',
+          '  /agent list                       List active agents',
+          '  /agent send <name> <msg>         Send message',
+          '  /agent switch <name>              Switch active agent',
+          '  /agent kill <name>                Terminate agent',
+          '',
           'Keyboard shortcuts:',
           '  Ctrl+C   - Interrupt',
           '  Ctrl+L   - Clear screen',
@@ -716,7 +733,7 @@
           '  ↑/↓      - Command history',
           '',
           'Premium features:',
-          '  Save sessions, custom themes, aliases',
+          '  Multiple AI agents, saved sessions, custom themes',
           '  → Get Started — $9'
         ];
         lines.forEach(line => this.term.writeln(line));
@@ -966,6 +983,103 @@
         }
         return this.commandHistory[this.historyIndex];
       }
+
+      async agentCommand(args) {
+        const subcmd = args[0] || '';
+        this.term.writeln('');
+
+        if (!subcmd) {
+          this.term.writeln('  \x1b[36m/agent\x1b[0m — AI Agent Shell commands');
+          this.term.writeln('  Usage:');
+          this.term.writeln('    /agent spawn <name> "<system_prompt>"   Spawn a new AI agent');
+          this.term.writeln('    /agent list                            List active agents');
+          this.term.writeln('    /agent send <name> <message>           Send message to agent');
+          this.term.writeln('    /agent switch <name>                   Switch active agent');
+          this.term.writeln('    /agent kill <name>                    Terminate agent');
+          this.term.writeln('    /agent info <name>                    Show agent details');
+          this.term.writeln('');
+          this.term.writeln('  \x1b[33mPremium:\x1b[0m Multiple agents require a license.');
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/process', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: `/agent ${args.join(' ')}` })
+          });
+          const data = await response.json();
+
+          if (!data.ok) {
+            this.term.writeln(`  \x1b[31mError:\x1b[0m ${data.error}`);
+            if (data.hint) this.term.writeln(`  \x1b[33mHint:\x1b[0m ${data.hint}`);
+            return;
+          }
+
+          switch (subcmd) {
+            case 'spawn': {
+              const a = data.agent;
+              this.agents[a.name] = { id: a.id, prompt: args.slice(2).join(' ') };
+              this.activeAgent = a.name;
+              this.term.writeln(`  \x1b[32m✓\x1b[0m Agent \`${a.name}\` spawned (PID ${a.id})`);
+              this.term.writeln(`  Active agent set to \`${a.name}\`. Type \`/agent send ${a.name} <msg>\` to chat.`);
+              break;
+            }
+            case 'list': {
+              if (data.count === 0) {
+                this.term.writeln('  No active agents. Try: /agent spawn <name> "<prompt>"');
+              } else {
+                this.term.writeln(`  \x1b[36m${data.count} active agent(s):\x1b[0m`);
+                for (const a of data.agents) {
+                  const mark = a.name === this.activeAgent ? ' \x1b[33m← active\x1b[0m' : '';
+                  this.term.writeln(`    \x1b[32m${a.name}\x1b[0m  [${a.id}]  ${mark}`);
+                }
+              }
+              break;
+            }
+            case 'send': {
+              const name = args[1];
+              const msg = args.slice(2).join(' ');
+              this.term.writeln(`  \x1b[36m→ ${name}:\x1b[0m "${msg.slice(0, 60)}${msg.length > 60 ? '...' : ''}"`);
+              this.term.writeln(`  \x1b[35m⟳\x1b[0m Waiting for ${name}...`);
+              if (data.reply) {
+                this.term.writeln(`  \x1b[32m← ${name}:\x1b[0m ${data.reply}`);
+              } else {
+                this.term.writeln('  \x1b[33m(No response from API — check GROQ_API_KEY)\x1b[0m');
+              }
+              break;
+            }
+            case 'switch': {
+              if (!this.agents[data.agent.name]) {
+                this.agents[data.agent.name] = { id: data.agent.id };
+              }
+              this.activeAgent = data.agent.name;
+              this.term.writeln(`  \x1b[32m✓\x1b[0m Switched to agent \`${data.agent.name}\` [${data.agent.id}]`);
+              break;
+            }
+            case 'kill': {
+              delete this.agents[data.message.match(/`([^`]+)`/)?.[1] || args[1] || ''];
+              if (this.activeAgent === args[1]) this.activeAgent = null;
+              this.term.writeln(`  \x1b[32m✓\x1b[0m ${data.message}`);
+              break;
+            }
+            case 'info': {
+              const a = data.agent;
+              this.term.writeln(`  Agent: \x1b[32m${a.name}\x1b[0m  [${a.id}]`);
+              this.term.writeln(`  Created: ${a.created}`);
+              this.term.writeln(`  Status: ${a.active ? '\x1b[32mactive\x1b[0m' : '\x1b[31minactive\x1b[0m'}`);
+              this.term.writeln(`  History: ${data.history} messages`);
+              this.term.writeln(`  System: "${a.prompt.slice(0, 80)}${a.prompt.length > 80 ? '...' : ''}"`);
+              break;
+            }
+            default:
+              this.term.writeln(`  ${JSON.stringify(data)}`);
+          }
+        } catch (e) {
+          this.term.writeln(`  \x1b[31mNetwork error:\x1b[0m ${e.message}`);
+          this.term.writeln('  \x1b[33mTip:\x1b[0m /agent commands require a live backend (Vercel deployment).');
+        }
+      }
     }
 
     // ============================================================
@@ -1024,8 +1138,9 @@
       shell = new ShellEmulator(term);
 
       // Welcome message
-      term.writeln('\x1b[32mTerminal OS\x1b[0m — Browser-based terminal emulator');
-      term.writeln('Type \x1b[36mhelp\x1b[0m for available commands');
+      term.writeln('\x1b[32mTerminal OS\x1b[0m — AI Agent Shell OS');
+      term.writeln('Type \x1b[36mhelp\x1b[0m for shell commands, \x1b[36m/agent\x1b[0m to spawn AI agents');
+      term.writeln('\x1b[33mNew:\x1b[0m /agent spawn coder "expert JS dev"  →  /agent send coder "debug my code"');
       term.writeln('');
 
       promptDisplayed = shell.getPrompt();
