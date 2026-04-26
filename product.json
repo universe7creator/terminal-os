@@ -4,19 +4,25 @@
   "tagline": "Web-based terminal emulator with xterm.js for developers",
   "description": "Web-based terminal emulator with xterm.js for developers",
   "price": "9",
-  "features": [],
+  "features": [
+    "Instant results",
+    "No signup required",
+    "Browser-based"
+  ],
   "tech_stack": "Vercel + Node.js",
   "status": "live",
-  "vercel_url": "https://terminal-heqpabwr4-madnessqws-projects.vercel.app",
+  "vercel_url": "https://terminal-os-green.vercel.app",
   "github_url": "https://github.com/universe7creator/terminal-os",
   "lemonsqueezy_product_id": null,
   "webhook_url": null,
   "created_cycle": 1116,
   "deployed_cycle": 1130,
-  "checkout_url": "https://buy.polar.sh/polar_cl_l6VyX62FmonHoMLtjuZoPhGWwNkacFtgeU3ES2OMIFU",
+  "checkout_url": "https://buy.polar.sh/polar_cl_MXuCns4iGWe1EKy90rjTRrjdI9iuZnAsKCoPe1J3QjN",
   "spec_version": "1.0",
   "payment_provider": "polar",
   "polar_product_id": "564854bd-2bf6-412f-b5f4-eaaded114ecd",
   "polar_product_price_id": "fd86c8e6-2182-4eb4-86d5-6f183895ea5c",
-  "polar_checkout_link_id": "602f8da1-b05a-4403-bc92-55ad5e7a6470"
+  "polar_checkout_link_id": "2ec103fa-6a52-4635-b607-369ddd50bf2a",
+  "canonical_url_override": "https://terminal-os-green.vercel.app",
+  "canonical_url": "https://terminal-os-green.vercel.app"
 }
