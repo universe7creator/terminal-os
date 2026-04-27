@@ -11,10 +11,10 @@
   ],
   "tech_stack": "Vercel + Node.js",
   "status": "live",
-  "vercel_url": "https://terminal-ehkk5pe49-madnessqws-projects.vercel.app",
+  "vercel_url": "https://terminal-gr46wntxu-madnessqws-projects.vercel.app",
   "github_url": "https://github.com/universe7creator/terminal-os",
   "lemonsqueezy_product_id": null,
-  "webhook_url": "https://terminal-ehkk5pe49-madnessqws-projects.vercel.app/api/webhook",
+  "webhook_url": "https://terminal-gr46wntxu-madnessqws-projects.vercel.app/api/webhook",
   "created_cycle": 1116,
   "deployed_cycle": 1130,
   "checkout_url": "https://buy.polar.sh/polar_cl_MXuCns4iGWe1EKy90rjTRrjdI9iuZnAsKCoPe1J3QjN",
@@ -25,5 +25,5 @@
   "polar_checkout_link_id": "2ec103fa-6a52-4635-b607-369ddd50bf2a",
   "canonical_url_override": "https://terminal-os-green.vercel.app",
   "canonical_url": "https://terminal-os-green.vercel.app",
-  "deployment_url": "https://terminal-ehkk5pe49-madnessqws-projects.vercel.app"
+  "deployment_url": "https://terminal-gr46wntxu-madnessqws-projects.vercel.app"
 }
